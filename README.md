@@ -7,6 +7,7 @@ A Tkinter GUI to plan BlockBlast-like moves:
 - Compute the exact placement order (1 → 2 → 3) using a heuristic search
 - Visualize suggested placements with distinct colors and step numbers
 - Apply the solution to update the board and clear completed lines
+ - Optional computer-vision to auto-detect the board and the 3 offered blocks
 
 Quick Start
 -----------
@@ -40,6 +41,11 @@ UI & Controls
   - Clear Blocks: reset the selection to 0/3
   - Reset Board: clear the entire board
   - Clear Completed: clear any currently complete rows/columns
+  - Calibrate: open a full-screen screenshot to drag 4 rectangles: Board, Block A, Block B, Block C
+  - Detect Blocks: take one screenshot, detect A/B/C, run Solve once and lock the plan
+  - Auto On/Off: continuous detection loop that updates the board and blocks
+  - Vision View: opens a debug window with overlays for board and blocks
+  - Tune Vision: sliders to tweak thresholds for robust detection
 
 How It Solves
 -------------
@@ -50,6 +56,34 @@ The solver performs a depth-first search over placements for the selected 3 bloc
 - Penalizes isolated empty holes
 
 You can tune performance via `MAX_BRANCHING_PER_BLOCK` in `solver.py`.
+
+Computer Vision (Auto-detect)
+-----------------------------
+
+Overview
+- Calibration: press Calibrate and drag 4 boxes on the full-screen preview in this order: the Board, then Block A, Block B, Block C.
+- Detection: either press Detect Blocks once, or use Auto On for continuous updates.
+- Vision View shows:
+  - Board: current occupied cells highlighted.
+  - Blocks: each block region with a light-blue bounding box and green squares for detected tiles.
+
+Plan Lock
+- When Detect Blocks (or Auto) finds 3 blocks, the solver computes a plan once and locks it until applied.
+- While locked:
+  - The plan persists even if the on-screen board changes.
+  - The UI does not re-solve.
+  - The lock releases automatically when either:
+    - The three block slots are empty (new set arrived), or
+    - The observed board matches the solver’s expected end-state after applying the plan.
+
+Tuning
+- Block thresholds: Saturation/Value sliders control block tile extraction.
+- Board offsets: S/V offsets bias the board fill thresholds against background.
+- Board fill ratio: minimum fraction of interior pixels that must exceed thresholds to mark a cell as filled (useful for decorated/numbered tiles).
+
+Implementation Notes
+- Shapes are recognized by normalizing to a compact grid and comparing against all rotations of dictionary templates (mirrors optional).
+- The palette reflects the `BLOCKS` mapping. Add/rename shapes and the UI updates automatically.
 
 Customization
 -------------
@@ -67,4 +101,6 @@ Troubleshooting
 
 - If solving feels slow, reduce `MAX_BRANCHING_PER_BLOCK`.
 - If Tkinter import fails, install your Python’s Tk bindings (varies by OS).
+ - If detection misses decorated tiles, lower Board fill ratio a little and/or nudge Board S/V offsets.
+ - If blocks are misnamed, use Vision View to verify green tiles align; adjust Block S/V thresholds.
 
